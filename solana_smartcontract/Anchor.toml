@@ -1,0 +1,21 @@
+[toolchain]
+
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+enso_lending = "G3LQL3DpD8Bd5q3ERGZwqAgkgyFKJTbt9ViCpu1hVd6o"
+
+[programs.devnet]
+enso_lending = "DKUHHKPYbLtPf4pSoURxfJKUXhdwtpoeHAdpknMta5VF"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "./a23QvEb6Q3adWurmUVbJ9YfAa6tiEzZBdXB8cvmhViS.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

@@ -1,0 +1,13 @@
+[package]
+name = "enso_lending"
+edition = "2024.beta"
+published-at = ""
+
+[dependencies]
+Pyth = { git = "https://github.com/pyth-network/pyth-crosschain.git", subdir = "target_chains/sui/contracts", rev = "sui-contract-testnet" }
+Wormhole = { git = "https://github.com/wormhole-foundation/wormhole.git", subdir = "sui/wormhole", rev = "sui-upgrade-testnet" }
+
+[addresses]
+enso_lending = "0x0"
+admin = ""
+operator = ""

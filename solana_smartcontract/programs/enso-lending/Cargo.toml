@@ -1,0 +1,33 @@
+[package]
+name = "enso-lending"
+version = "0.3.2"
+description = "Created with Anchor"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "enso_lending"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+maximum-age-price-updater = []
+beta-test = []
+dev = []
+staging = []
+uat = []
+prod = []
+default = []
+devnet = ["wormhole-anchor-sdk/solana-devnet", "maximum-age-price-updater"]
+
+[dependencies]
+anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
+anchor-spl = "0.29.0"
+pyth-solana-receiver-sdk ="0.1.0"
+wormhole-anchor-sdk = { version = "0.29.0-alpha.1", default-features = false }
+ahash = "=0.8.6"
+cfg-if = "1.0.0"
+solana-program = "=1.18.2"
+
