@@ -25,7 +25,7 @@ pub const ASSET_SEED: &[u8] = b"asset";
 pub const VAULT_AUTHORITY_LOAN_OFFER_ACCOUNT_SEED: &[u8] = b"vault_authority_loan_offer";
 pub const LEND_OFFER_ACCOUNT_SEED: &[u8] = b"lend_offer";
 pub const LOAN_OFFER_ACCOUNT_SEED: &[u8] = b"loan_offer";
-pub const WORMHOLE_MESSAGE_SEED: &[u8] = b"wormhole_message";
+pub const WORMHOLE_SENT_SEED: &[u8; 4] = b"sent";
 
 #[cfg(feature = "staging")]
 pub const OPERATE_SYSTEM_PUBKEY: &str = "sysvYFEXhxW7FP32Ha15BBGWBEfMq1e1ScvFq61u5mG";
@@ -35,8 +35,6 @@ pub const OPERATE_SYSTEM_PUBKEY: &str = "opty8HWBKX3wW8c9qMPkmB4xnrCpMWWmQwqq7yG
 pub const HOT_WALLET_PUBKEY: &str = "hotbEp8jbFUwfAGTUtLupGXE2JtrfZENLgRcSQsYk56";
 #[cfg(not(feature = "staging"))]
 pub const HOT_WALLET_PUBKEY: &str = "Hot7zcvBTa3NybAnKrKtjcW1yJcoDWao39ZAoBn4mfPu";
-
-pub const SUI_CHAIN_ADDRESS: &str = "0x44f136283e552098e9676c70c91ec5517153e65244b749b979d70fcc7ee15f9e";
 
 #[cfg(feature = "dev")]
 pub const MIN_BORROW_HEALTH_RATIO: f64 = 1.1;
@@ -53,9 +51,9 @@ pub const POSTED_TIMESTAMP_THRESHOLD: u32 = 30 * 60;
 
 pub const CREATE_LOAN_OFFER_CROSS_CHAIN_FUNCTION: &str = "create_loan_offer_cross_chain";
 pub const CANCEL_COLLATERAL_FUNCTION: &str = "cancel_collateral";
+pub const UPDATE_DEPOSIT_COLLATERAL_CROSS_CHAIN_FUNCTION: &str = "update_deposit_collateral_cross_chain";
+pub const UPDATE_WITHDRAW_COLLATERAL_CROSS_CHAIN_FUNCTION: &str = "update_withdraw_collateral_cross_chain";
+pub const START_LIQUIDATE_HEALTH_LOAN_CROSS_CHAIN: &str = "start_liquidate_health_loan_cross_chain";
+pub const START_LIQUIDATE_EXPIRED_LOAN_CROSS_CHAIN: &str = "start_liquidate_expired_loan_cross_chain";
 
 pub const REFUND_COLLATERAL_CROSS_CHAIN_FUNCTION: &str = "refund_collateral_to_repaid_borrower";
-
-pub const SOL_CHAIN_ID: u16 = 1;
-pub const SUI_CHAIN_ID: u16 = 21;
-pub const CHAIN_IDS: [u16; 2] = [SOL_CHAIN_ID, SUI_CHAIN_ID]; 

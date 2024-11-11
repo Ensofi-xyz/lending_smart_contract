@@ -9,13 +9,18 @@ module enso_lending::wormhole {
 		emitter::{Self, EmitterCap},
 		state::State,
 		publish_message,
+		bytes32,
+		external_address,
 		vaa,
 	};
 	use enso_lending::utils::convert_vaa_buffer_to_string;
 
 	use fun std::string::utf8 as vector.to_string;
 
-	const EInvalidVaa: u64 = 1;
+	const EInvalidEmitterChain: u64 = 1;
+	const EInvalidEmitterAddress: u64 = 2;
+	const EInvalidTargetChain: u64 = 3;
+	const EInvalidTargetFunction: u64 = 4;
 
 	const CHAIN_ID: vector<u8> = b"21";
 
@@ -70,6 +75,8 @@ module enso_lending::wormhole {
 		expected_target_function: vector<u8>,
 		clock: &Clock,
 	): vector<String> {
+		let expected_emitter_external_address = external_address::new(bytes32::new(expected_emitter_address));
+		
 		let vaa = vaa::parse_and_verify(
 			wormhole_state,
 			vaa_buf,
@@ -79,13 +86,11 @@ module enso_lending::wormhole {
 		let mut payload_data = convert_vaa_buffer_to_string(vaa_payload);
 		let target_chain = *vector::borrow<String>(&payload_data, 0);
 		let target_function = *vector::borrow<String>(&payload_data, 2);
-		assert!(
-			expected_emitter_chain == emitter_chain &&
-			expected_emitter_address == emitter_address.to_bytes() &&
-			target_chain == CHAIN_ID.to_string() /* SUI */ &&
-			expected_target_function.to_string() == target_function,
-			EInvalidVaa,
-		);
+
+		assert!(expected_emitter_chain == emitter_chain, EInvalidEmitterChain);
+		assert!(expected_emitter_external_address.to_bytes() == emitter_address.to_bytes(), EInvalidEmitterAddress);
+		assert!(target_chain == CHAIN_ID.to_string() /* SUI */, EInvalidTargetChain);
+		assert!(expected_target_function.to_string() == target_function, EInvalidTargetFunction);
 
 		let mut i = vector::length(&payload_data) - 1;
 		let mut payload_body: vector<String> = vector[];

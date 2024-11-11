@@ -1,7 +1,7 @@
 use anchor_lang::{solana_program::msg, AnchorDeserialize, AnchorSerialize};
 use std::io::{self, *};
 
-pub const MESSAGE_PAYLOAD_MAX_LENGTH: usize = 255;
+pub const MESSAGE_PAYLOAD_MAX_LENGTH: usize = 300;
 
 #[derive(Clone)]
 pub enum WormholeMessage {
@@ -38,7 +38,7 @@ impl AnchorDeserialize for WormholeMessage {
   }
   
   fn deserialize_reader<R: Read>(reader: &mut R) -> Result<Self> {
-    let mut buffer: [u8; 255] = [0; 255];
+    let mut buffer: [u8; MESSAGE_PAYLOAD_MAX_LENGTH] = [0; MESSAGE_PAYLOAD_MAX_LENGTH];
     let length = reader.read(&mut buffer[..])?;
     if length > MESSAGE_PAYLOAD_MAX_LENGTH {
       Err(Error::new(

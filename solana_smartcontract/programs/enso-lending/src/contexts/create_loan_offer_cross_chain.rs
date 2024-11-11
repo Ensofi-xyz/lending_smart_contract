@@ -1,11 +1,9 @@
-use std::str::FromStr;
-
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 use wormhole_anchor_sdk::wormhole::{self, program::Wormhole};
 
 use crate::{
-  common::{ENSO_SEED, LEND_OFFER_ACCOUNT_SEED, SETTING_ACCOUNT_SEED}, Asset, ForeignEmitter, LendOfferAccount, LendOfferStatus, LoanOfferAccount, LoanOfferCreateRequestEvent, LoanOfferError, LoanOfferStatus, SettingAccount, WormholeMessage, ASSET_SEED, CREATE_LOAN_OFFER_CROSS_CHAIN_FUNCTION, DISCRIMINATOR, LOAN_OFFER_ACCOUNT_SEED, POSTED_TIMESTAMP_THRESHOLD
+  common::{ENSO_SEED, LEND_OFFER_ACCOUNT_SEED, SETTING_ACCOUNT_SEED}, Asset, ForeignChain, LendOfferAccount, LendOfferStatus, LoanOfferAccount, LoanOfferCreateRequestEvent, LoanOfferError, LoanOfferStatus, SettingAccount, WormholeMessage, ASSET_SEED, CREATE_LOAN_OFFER_CROSS_CHAIN_FUNCTION, DISCRIMINATOR, LOAN_OFFER_ACCOUNT_SEED, POSTED_TIMESTAMP_THRESHOLD
 };
 use crate::utils::vaa;
 
@@ -98,8 +96,11 @@ pub struct CreateLoanOfferCrossChain<'info> {
   )]
   /// signatures and posted the account data here. Read-only.
   pub posted: Account<'info, wormhole::PostedVaa<WormholeMessage>>,
-  #[account(mut)]
-  pub foreign_emitter: Account<'info, ForeignEmitter>,
+  #[account(
+    mut,
+    constraint = collateral_asset.chain_id == foreign_chain.chain_id @ LoanOfferError::InvalidChainId
+  )]
+  pub foreign_chain: Account<'info, ForeignChain>,
   pub wormhole_program: Program<'info, Wormhole>,
   pub system_program: Program<'info, System>,
 }
@@ -122,18 +123,18 @@ impl<'info> CreateLoanOfferCrossChain<'info> {
       _target_address,
       target_function,
       posted_tier_id,
-      offer_id,
+      posted_lend_offer_id,
+      lend_amount,
       collateral_amount,
       collateral_address,
-      _collateral_token_decimal,
-      _collateral_token_symbol,
       borrower_address,
 
     ) = self.parse_create_loan_payload(&payload).unwrap();
 
     let _ = self.verify_payload_message_data(
       target_function, 
-      offer_id, 
+      posted_lend_offer_id, 
+      lend_amount,
       posted_tier_id,
       tier_id.clone(),
       borrower_address,
@@ -171,10 +172,10 @@ impl<'info> CreateLoanOfferCrossChain<'info> {
   }
 
   fn validate_posted_vaa(&self) -> Result<()> {
-    let posted_emitter_chain = self.posted.meta.emitter_chain;
-    let foreign_emitter_chain = self.foreign_emitter.chain;
+    let posted_chain_id = self.posted.meta.emitter_chain;
+    let chain_id = self.foreign_chain.chain_id;
     let posted_emitter_address = self.posted.meta.emitter_address;
-    let foreign_emitter_address = self.foreign_emitter.address.clone();
+    let emitter_address = self.foreign_chain.emitter_address.clone();
     let posted_timestamp: u32 = self.posted.meta.timestamp;
     let current_timestamp: u32 = Clock::get()?.unix_timestamp.try_into().unwrap();
 
@@ -183,17 +184,17 @@ impl<'info> CreateLoanOfferCrossChain<'info> {
     }
 
     Ok(vaa::validate_posted_vaa(
-        posted_emitter_chain,
-        foreign_emitter_chain,
+        posted_chain_id,
+        chain_id,
         posted_emitter_address,
-        foreign_emitter_address,
+        emitter_address,
     )?)
   }
 
   fn parse_create_loan_payload(
     &self,
     posted_vaa: &Vec<u8>,
-  ) -> Result<(u16 ,String, String, String, String ,u64, String, u8, String, String)> {
+  ) -> Result<(u16, String, String, String, String, u64, u64, String, String)> {
       Ok(vaa::parse_create_loan_payload(posted_vaa)?)
   }
 
@@ -201,6 +202,7 @@ impl<'info> CreateLoanOfferCrossChain<'info> {
     &self,
     target_function: String,
     lend_offer_id: String,
+    lend_amount: u64,
     posted_tier_id: String,
     tier_id: String,
     borrower_address: String,
@@ -214,11 +216,15 @@ impl<'info> CreateLoanOfferCrossChain<'info> {
       return err!(LoanOfferError::LendOfferIdNotMatch);
     }
 
+    if lend_amount < self.lend_offer.amount {
+      return err!(LoanOfferError::InvalidLendOfferAmount);
+    }
+
     if posted_tier_id != tier_id {
       return err!(LoanOfferError::TierIdNotMatch);
     }
 
-    if Pubkey::from_str(&borrower_address).unwrap() != self.borrower.key() {
+    if borrower_address != self.borrower.key().to_string() {
       return err!(LoanOfferError::InvalidBorrower);
     }
 

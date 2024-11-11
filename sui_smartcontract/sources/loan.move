@@ -35,8 +35,7 @@ module enso_lending::loan {
     const ECollateralIsInsufficient: u64 = 15;
     const ECanNotRepayExpiredLoan: u64 = 16;
 
-    //TODO update doc
-    public entry fun take_loan<LendCoinType, CollateralCoinType>(
+    entry fun take_loan<LendCoinType, CollateralCoinType>(
         version: &Version,
         configuration: &Configuration,
         state: &mut State,
@@ -93,7 +92,7 @@ module enso_lending::loan {
         state.add_loan(loan_id, borrower, ctx);
     }
 
-    public entry fun repay<LendCoinType, CollateralCoinType>(
+    entry fun repay<LendCoinType, CollateralCoinType>(
         version: &Version,
         configuration: &Configuration,
         custodian: &mut Custodian<LendCoinType>,
@@ -140,7 +139,7 @@ module enso_lending::loan {
         );
     }
 
-    public entry fun withdraw_collateral_loan_offer<LendCoinType, CollateralCoinType>(
+    entry fun withdraw_collateral_loan_offer<LendCoinType, CollateralCoinType>(
         version: &Version,
         configuration: &Configuration,
         state: &mut State,
@@ -189,7 +188,7 @@ module enso_lending::loan {
         );
     }
 
-    public entry fun deposit_collateral_loan_offer<LendCoinType, CollateralCoinType>(
+    entry fun deposit_collateral_loan_offer<LendCoinType, CollateralCoinType>(
         version: &Version,
         configuration: &Configuration,
         state: &mut State,

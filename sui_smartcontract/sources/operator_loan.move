@@ -31,7 +31,7 @@ module enso_lending::operator_loan {
     const ECanNotLiquidateUnexpiredLoan: u64 = 9;
     const EInvalidCoinInput: u64 = 11;
 
-    public entry fun system_fund_transfer<LendCoinType, CollateralCoinType>(
+    entry fun system_fund_transfer<LendCoinType, CollateralCoinType>(
         _: &OperatorCap,
         version: &Version,
         state: &mut State,
@@ -58,7 +58,7 @@ module enso_lending::operator_loan {
         );
     }
 
-    public entry fun system_finish_loan<LendCoinType, CollateralCoinType>(
+    entry fun system_finish_loan<LendCoinType, CollateralCoinType>(
         _: &OperatorCap,
         version: &Version,
         configuration: &Configuration,
@@ -94,7 +94,7 @@ module enso_lending::operator_loan {
         loan.system_finish_loan<LendCoinType, CollateralCoinType>(repay_to_lender_amount);
     }
 
-	public entry fun start_liquidate_loan_offer_health<LendCoinType, CollateralCoinType>(
+	entry fun start_liquidate_loan_offer_health<LendCoinType, CollateralCoinType>(
         _: &OperatorCap,
         version: &Version,
         configuration: &Configuration,
@@ -144,7 +144,7 @@ module enso_lending::operator_loan {
         );
     }
 
-    public entry fun start_liquidate_loan_offer_expired<LendCoinType, CollateralCoinType>(
+    entry fun start_liquidate_loan_offer_expired<LendCoinType, CollateralCoinType>(
         _: &OperatorCap,
         version: &Version,
         configuration: &Configuration,
@@ -173,7 +173,7 @@ module enso_lending::operator_loan {
         );
     }
 
-    public entry fun system_liquidate_loan_offer<LendCoinType, CollateralCoinType>(
+    entry fun system_liquidate_loan_offer<LendCoinType, CollateralCoinType>(
         _: &OperatorCap,
         version: &Version,
         configuration: &Configuration,

@@ -241,15 +241,36 @@ pub struct SystemRevertEvent {
 
 #[event]
 pub struct InitForeignEmitterEvent {
-    pub chain: u16,
-    pub address: String,
+    pub chain_id: u16,
+    pub chain_address: String,
+    pub emitter_address: String
 }
 
 #[event]
-pub struct CancelLoanOfferCrossChainEvent {
+pub struct RequestCancelCollateralCrossChainEvent {
     pub borrower: Pubkey,
     pub lend_offer_id: String,
-    pub loan_offer_id: String,
     pub target_chain: u16,
-    pub target_address: String,
+    pub chain_address: String,
+}
+
+#[event]
+pub struct UpdateDepositCollateralCrossChainEvent {
+  pub target_chain: u16,
+  pub chain_address: String,
+  pub loan_offer_id: String,
+  pub collateral_amount: u64,
+  pub collateral_address: String,
+  pub borrower: Pubkey,
+}
+
+#[event]
+pub struct UpdateWithdrawCollateralCrossChainEvent {
+  pub target_chain: u16,
+  pub chain_address: String,
+  pub loan_offer_id: String,
+  pub withdraw_amount: u64,
+  pub remaining_collateral_amount: u64,
+  pub collateral_address: String,
+  pub borrower: Pubkey,
 }

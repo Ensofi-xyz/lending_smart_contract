@@ -11,7 +11,7 @@ module enso_lending::operator_offer {
     const EInvalidOfferStatus: u64 = 2;
     const ELendCoinIsInvalid: u64 = 3;
 
-    public entry fun system_cancel_offer<LendCoinType>(
+    entry fun system_cancel_offer<LendCoinType>(
         _: &OperatorCap,
         version: &Version,
         state: &mut State,

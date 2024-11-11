@@ -96,6 +96,12 @@ pub enum LoanOfferError {
     BorrowerSignedLoanOffer,
     #[msg("Loan offer in validity")]
     LoanOfferInValidity,
+    #[msg("Invalid lend offer amount")]
+    InvalidLendOfferAmount,
+    #[msg("Invalid chain id")]
+    InvalidChainId,
+    #[msg("Withdraw amount not match")]
+    WithdrawAmountNotMatch,
 }
 
 #[error_code]
@@ -140,6 +146,8 @@ pub enum LiquidateOfferError {
 
 #[error_code]
 pub enum WormholeError {
+    #[msg("Invalid owner account")]
+    InvalidOwner,
     #[msg("Invalid wormhole system account")]
     InvalidSystem,
     #[msg("Invalid foreign emitter")]
@@ -148,6 +156,12 @@ pub enum WormholeError {
     InvalidMessage,
     #[msg("Not support this chain id")]
     NotSupportThisChainId,
+    #[msg("Invalid sequence")]
+    InvalidSequence,
+    #[msg("Invalid fee collector")]
+    InvalidWormholeFeeCollector,
+    #[msg("Invalid wormhole config")]
+    InvalidWormholeConfig
 }
 
 #[error_code]
@@ -166,4 +180,8 @@ pub enum ParseVaaError {
     InvalidCollateralDecimal,
     #[msg("Invalid foreign emitter")]
     InvalidForeignEmitter,
+    #[msg("Invalid Lend amount")]
+    InvalidLendAmount,
+    #[msg("Invalid remaining collateral amount")]
+    InvalidRemainingCollateralAmount
 }

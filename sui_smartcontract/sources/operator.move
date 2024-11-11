@@ -9,6 +9,7 @@ module enso_lending::operator {
         asset_tier::{Self, AssetTierKey, AssetTier},
         asset::{Self, Asset},
         wormhole,
+        foreign_chain::{Self, ForeignChain, ForeignChainKey},
         utils,
     };
 
@@ -26,7 +27,7 @@ module enso_lending::operator {
         transfer::transfer(operator_cap, @operator);
     }
 
-    public entry fun init_system<T>(
+    entry fun init_system<T>(
         _: &OperatorCap,
         version: &Version,
         lender_fee_percent: u64,
@@ -49,7 +50,7 @@ module enso_lending::operator {
         custodian::new<T>(ctx);
     }
 
-    public entry fun init_wormhole_emitter(
+    entry fun init_wormhole_emitter(
         _: &OperatorCap,
         version: &Version,
         wormhole_state: &WormholeState,
@@ -60,7 +61,7 @@ module enso_lending::operator {
         wormhole::new(wormhole_state, ctx);
     }
  
-    public entry fun update_configuration(
+    entry fun update_configuration(
         _: &OperatorCap,
         version: &Version,
         configuration: &mut Configuration,
@@ -80,7 +81,7 @@ module enso_lending::operator {
         );
     }
 
-    public entry fun add_asset<CoinType>(
+    entry fun add_asset<CoinType>(
         _: &OperatorCap,
         version: &Version,
         configuration: &mut Configuration,
@@ -110,7 +111,7 @@ module enso_lending::operator {
         configuration.add<String, Asset<CoinType>>(coin_type, asset);
     }
 
-    public entry fun update_asset<CoinType>(
+    entry fun update_asset<CoinType>(
         _: &OperatorCap,
         version: &Version,
         configuration: &mut Configuration,
@@ -124,7 +125,7 @@ module enso_lending::operator {
         asset.update<CoinType>(price_feed_id, max_price_age_seconds);
     }
 
-    public entry fun delete_asset<CoinType>(
+    entry fun delete_asset<CoinType>(
         _: &OperatorCap,
         version: &Version,
         configuration: &mut Configuration,
@@ -136,7 +137,47 @@ module enso_lending::operator {
         asset.delete<CoinType>();
     }
 
-    public entry fun init_asset_tier<T>(
+    entry fun add_foreign_chain(
+        _: &OperatorCap,
+        version: &Version,
+        configuration: &mut Configuration,
+        chain_id: u16,
+        chain_address: vector<u8>,
+        emitter_address: vector<u8>,
+    ) {
+        version.assert_current_version();
+        let foreign_chain_key = foreign_chain::new_foreign_chain_key(chain_id);
+        let foreign_chain = foreign_chain::new_foreign_chain(chain_address, emitter_address);
+        configuration.add<ForeignChainKey, ForeignChain>(foreign_chain_key, foreign_chain);
+    }
+
+    entry fun update_foreign_chain(
+        _: &OperatorCap,
+        version: &Version,
+        configuration: &mut Configuration,
+        chain_id: u16,
+        chain_address: vector<u8>,
+        emitter_address: vector<u8>,
+    ) {
+        version.assert_current_version();
+        let foreign_chain_key = foreign_chain::new_foreign_chain_key(chain_id);
+        let foreign_chain = configuration.borrow_mut<ForeignChainKey, ForeignChain>(foreign_chain_key);
+        foreign_chain.update_foreign_chain(chain_address, emitter_address);
+    }
+
+    entry fun delete_foreign_chain(
+        _: &OperatorCap,
+        version: &Version,
+        configuration: &mut Configuration,
+        chain_id: u16,
+    ) {
+        version.assert_current_version();
+        let foreign_chain_key = foreign_chain::new_foreign_chain_key(chain_id);
+
+        configuration.remove<ForeignChainKey, ForeignChain>(foreign_chain_key);
+    }
+
+    entry fun init_asset_tier<T>(
         _: &OperatorCap,
         version: &Version,
         state: &mut State,
@@ -159,7 +200,7 @@ module enso_lending::operator {
         state.add<AssetTierKey<T>, AssetTier<T>>(asset_tier_key, asset_tier);
     }
 
-    public entry fun update_asset_tier<T>(
+    entry fun update_asset_tier<T>(
         _: &OperatorCap,
         version: &Version,
         state: &mut State,
@@ -178,7 +219,7 @@ module enso_lending::operator {
         );
     }
 
-    public entry fun delete_asset_tier<T>(
+    entry fun delete_asset_tier<T>(
         _: &OperatorCap,
         version: &Version,
         state: &mut State,

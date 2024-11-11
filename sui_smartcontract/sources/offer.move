@@ -20,7 +20,7 @@ module enso_lending::offer {
     const EInvalidOfferStatus: u64 = 7;
     const ESenderIsNotOfferOwner: u64 = 8;
 
-    public entry fun create_offer<LendCoinType>(
+    entry fun create_offer<LendCoinType>(
         version: &Version,
         state: &mut State,
         configuration: &Configuration,
@@ -52,14 +52,14 @@ module enso_lending::offer {
         state.add_offer(offer_id, lender, ctx);
     }
 
-    public entry fun request_cancel_offer<LendCoinType>(
+    entry fun request_cancel_offer<LendCoinType>(
         version: &Version,
         state: &mut State,
         offer_id: ID,
-        ctx: &mut TxContext,
+        _ctx: &mut TxContext,
     ) {
         version.assert_current_version();
-        let sender = ctx.sender();
+        let sender = _ctx.sender();
         let offer_key = offer_registry::new_offer_key<LendCoinType>(offer_id);
         assert!(state.contain<OfferKey<LendCoinType>, Offer<LendCoinType>>(offer_key), ENotFoundOfferToCancel);
         let offer = state.borrow_mut<OfferKey<LendCoinType>, Offer<LendCoinType>>(offer_key);
@@ -69,16 +69,16 @@ module enso_lending::offer {
         offer.cancel_offer(sender);
     }
 
-    public entry fun edit_offer<LendCoinType>(
+    entry fun edit_offer<LendCoinType>(
         version: &Version,
         configuration: &Configuration,
         state: &mut State,
         offer_id: ID,
         interest: u64,
-        ctx: &mut TxContext,
+        _ctx: &mut TxContext,
     ) {
         version.assert_current_version();
-        let sender = ctx.sender();
+        let sender = _ctx.sender();
         let offer_key = offer_registry::new_offer_key<LendCoinType>(offer_id);
         assert!(state.contain<OfferKey<LendCoinType>, Offer<LendCoinType>>(offer_key), ENotFoundOfferToEdit);
         let offer = state.borrow_mut<OfferKey<LendCoinType>, Offer<LendCoinType>>(offer_key);

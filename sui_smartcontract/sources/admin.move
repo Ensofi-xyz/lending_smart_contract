@@ -21,7 +21,7 @@ module enso_lending::admin {
         transfer::transfer(admin_cap, @admin);
     }
 
-    public entry fun set_admin(
+    entry fun set_admin(
         _: &AdminCap,
         version: &Version,
         user_address: address,
@@ -35,7 +35,7 @@ module enso_lending::admin {
         transfer::transfer(admin_cap, user_address);
     }
 
-    public entry fun set_operator(
+    entry fun set_operator(
         _: &AdminCap,
         version: &Version,
         user_address: address,
@@ -45,7 +45,7 @@ module enso_lending::admin {
         operator::new_operator(user_address, ctx);
     }
 
-    public entry fun claim_treasury_balance<T>(
+    entry fun claim_treasury_balance<T>(
         _: &AdminCap,
         version: &Version,
         custodian: &mut Custodian<T>,

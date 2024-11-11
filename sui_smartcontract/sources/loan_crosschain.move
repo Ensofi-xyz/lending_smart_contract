@@ -16,7 +16,8 @@ module enso_lending::loan_crosschain {
         asset::Asset,
 		collateral_holder::{Self, CollateralHolderKey, CollateralHolder},
 		wormhole::{Self, ProtectedEC, parse_and_verify_vaa},
-        utils::{get_type, get_emitter_address_by_chain},
+		foreign_chain::{Self, ForeignChainKey, ForeignChain},
+        utils::get_type,
 		vaa_utils,
     };
 
@@ -36,8 +37,9 @@ module enso_lending::loan_crosschain {
 	const ESenderIsInvalid: u64 = 9;
 	const EInvalidCollateralHolderStatus: u64 = 10;
 	const ECollateralIsInsufficient: u64 = 11;
+	const EInvalidForeignTargetChain: u64 = 12;
 
-	public entry fun deposit_collateral_to_take_loan<LendCoinType, CollateralCoinType>(
+	entry fun deposit_collateral_to_take_loan<LendCoinType, CollateralCoinType>(
 		version: &Version,
 		state: &mut State,
 		configuration: &Configuration,
@@ -97,10 +99,9 @@ module enso_lending::loan_crosschain {
 			target_address,
 			tier_id,
 			offer_id,
+			lend_amount,
 			collateral_amount,
 			*get_type<CollateralCoinType>().bytes(),
-			collateral_asset.decimals() as u64,
-			*collateral_asset.symbol().bytes(),
 			lend_chain_borrower,
 		);
 
@@ -115,8 +116,9 @@ module enso_lending::loan_crosschain {
 		state.add<CollateralHolderKey, CollateralHolder<CollateralCoinType>>(collateral_holder_key, collateral_holder);
 	}
 
-	public entry fun cancel_collateral<CollateralCoinType>(
+	entry fun cancel_collateral<CollateralCoinType>(
 		version: &Version,
+		configuration: &Configuration,
 		state: &mut State,
 		wormhole_state: &WormholeState,
 		offer_id: vector<u8>,
@@ -136,11 +138,15 @@ module enso_lending::loan_crosschain {
 		assert!(collateral_holder.is_created_status(), EInvalidCollateralHolderStatus);
 		assert!(sender == borrower, ESenderIsInvalid);
 
+		let foreign_chain_key = foreign_chain::new_foreign_chain_key(collateral_holder.lend_chain());
+		assert!(configuration.contain<ForeignChainKey, ForeignChain>(foreign_chain_key), EInvalidForeignTargetChain);
+		let foreign_chain = configuration.borrow<ForeignChainKey, ForeignChain>(foreign_chain_key);
+
 		let payload_body = parse_and_verify_vaa(
 			wormhole_state,
 			vaa_buf,
 			collateral_holder.lend_chain(),
-			get_emitter_address_by_chain(collateral_holder.lend_chain()),
+			foreign_chain.emitter_address(),
 			b"cancel_collateral",
 			clock,
 		);
@@ -152,8 +158,9 @@ module enso_lending::loan_crosschain {
 		transfer::public_transfer(refund_collateral_balance.to_coin(ctx), borrower);
 	}
 
-	public entry fun claim_refund_collateral<CollateralCoinType>(
+	entry fun claim_refund_collateral<CollateralCoinType>(
 		version: &Version,
+		configuration: &Configuration,
 		state: &mut State,
 		wormhole_state: &WormholeState,
 		offer_id: vector<u8>,
@@ -173,11 +180,15 @@ module enso_lending::loan_crosschain {
 		assert!(collateral_holder.is_created_status(), EInvalidCollateralHolderStatus);
 		assert!(sender == borrower, ESenderIsInvalid);
 
+		let foreign_chain_key = foreign_chain::new_foreign_chain_key(collateral_holder.lend_chain());
+		assert!(configuration.contain<ForeignChainKey, ForeignChain>(foreign_chain_key), EInvalidForeignTargetChain);
+		let foreign_chain = configuration.borrow<ForeignChainKey, ForeignChain>(foreign_chain_key);
+
 		let payload_body = parse_and_verify_vaa(
 			wormhole_state,
 			vaa_buf,
 			collateral_holder.lend_chain(),
-			get_emitter_address_by_chain(collateral_holder.lend_chain()),
+			foreign_chain.emitter_address(),
 			b"refund_collateral_to_repaid_borrower",
 			clock,
 		);
@@ -192,10 +203,10 @@ module enso_lending::loan_crosschain {
 		collateral_holder.refund_collateral_to_repaid_borrower();
 	}
 
-	public entry fun deposit_collateral<CollateralCoinType>(
+	entry fun deposit_collateral<CollateralCoinType>(
 		version: &Version,
-		state: &mut State,
 		configuration: &Configuration,
+		state: &mut State,
 		protected_ec: &mut ProtectedEC,
 		wormhole_state: &mut WormholeState,
 		message_fee: Coin<SUI>,
@@ -203,12 +214,11 @@ module enso_lending::loan_crosschain {
 		lend_chain_borrower: vector<u8>,
 		deposit_coin: Coin<CollateralCoinType>,
 		clock: &Clock,
-		ctx: &mut TxContext,
+		_ctx: &mut TxContext,
 	) {
 		version.assert_current_version();
-		let sender = ctx.sender();
-		
-		let collateral_asset = configuration.borrow<String, Asset<CollateralCoinType>>(get_type<CollateralCoinType>());
+		let sender = _ctx.sender();
+	
 		let collateral_holder_key = collateral_holder::new_holder_key(offer_id.to_string(), lend_chain_borrower.to_string());
 		assert!(state.contain<CollateralHolderKey, CollateralHolder<CollateralCoinType>>(collateral_holder_key), ECollateralHolderNotFound);
 		let collateral_holder = state.borrow_mut<CollateralHolderKey, CollateralHolder<CollateralCoinType>>(collateral_holder_key);
@@ -217,16 +227,20 @@ module enso_lending::loan_crosschain {
 		assert!(collateral_holder.is_created_status(), EInvalidCollateralHolderStatus);
 		assert!(sender == borrower, ESenderIsInvalid);
 
+		let foreign_chain_key = foreign_chain::new_foreign_chain_key(collateral_holder.lend_chain());
+		assert!(configuration.contain<ForeignChainKey, ForeignChain>(foreign_chain_key), EInvalidForeignTargetChain);
+		let foreign_chain = configuration.borrow<ForeignChainKey, ForeignChain>(foreign_chain_key);
+
 	 	collateral_holder.add_collateral_balance<CollateralCoinType>(deposit_coin.into_balance());
 		collateral_holder.deposit_collateral<CollateralCoinType>(get_type<CollateralCoinType>());
 
 		let payload = gen_deposit_collateral_message_payload(
 			(collateral_holder.lend_chain() as u64),
-			get_emitter_address_by_chain(collateral_holder.lend_chain()),
+			foreign_chain.chain_address(),
 			offer_id,
 			collateral_holder.collateral_amount(),
 			*get_type<CollateralCoinType>().bytes(),
-			(collateral_asset.decimals() as u64)
+			lend_chain_borrower,
 		);
 		
 		wormhole::send_message(
@@ -238,7 +252,7 @@ module enso_lending::loan_crosschain {
         );
 	}
 
-	public entry fun withdraw_collateral<LendCoinType, CollateralCoinType>(
+	entry fun withdraw_collateral<LendCoinType, CollateralCoinType>(
 		version: &Version,
 		state: &mut State,
 		configuration: &Configuration,
@@ -271,6 +285,10 @@ module enso_lending::loan_crosschain {
 		assert!(sender == borrower, ESenderIsInvalid);
 		assert!(collateral_amount >= withdraw_amount, ECollateralIsInsufficient);
 
+		let foreign_chain_key = foreign_chain::new_foreign_chain_key(collateral_holder.lend_chain());
+		assert!(configuration.contain<ForeignChainKey, ForeignChain>(foreign_chain_key), EInvalidForeignTargetChain);
+		let foreign_chain = configuration.borrow<ForeignChainKey, ForeignChain>(foreign_chain_key);
+
 		let remaining_collateral_amount = collateral_amount - withdraw_amount;
 		assert!(is_valid_collateral_amount<LendCoinType, CollateralCoinType>(
             configuration.min_health_ratio(),
@@ -293,12 +311,12 @@ module enso_lending::loan_crosschain {
 
 		let payload = gen_withdraw_collateral_message_payload(
 			(collateral_holder.lend_chain() as u64),
-			get_emitter_address_by_chain(collateral_holder.lend_chain()),
+			foreign_chain.chain_address(),
 			offer_id,
 			withdraw_amount,
 			remaining_collateral_amount,
 			*get_type<CollateralCoinType>().bytes(),
-			(collateral_asset.decimals() as u64),
+			lend_chain_borrower,
 		);
 
 		wormhole::send_message(
@@ -315,10 +333,9 @@ module enso_lending::loan_crosschain {
         target_address: vector<u8>,
         tier_id: vector<u8>,
         offer_id: vector<u8>,
+		lend_amount: u64,
         collateral_amount: u64,
         collateral_coin_type: vector<u8>,
-        collateral_decimal: u64,
-		collateral_coin_symbol: vector<u8>,
 		lend_chain_borrower: vector<u8>,
     ): vector<u8> {
         let mut payload: vector<u8> = vector[];
@@ -326,19 +343,17 @@ module enso_lending::loan_crosschain {
         vector::append(&mut payload, b",");
         vector::append(&mut payload, target_address);
         vector::append(&mut payload, b",");
-        vector::append(&mut payload, b"create_loan_offer_crosschain");
+        vector::append(&mut payload, b"create_loan_offer_cross_chain");
         vector::append(&mut payload, b",");
         vector::append(&mut payload, tier_id);
         vector::append(&mut payload, b",");
         vector::append(&mut payload, offer_id);
+		vector::append(&mut payload, b",");
+        vector::append(&mut payload, lend_amount.to_string());
         vector::append(&mut payload, b",");
         vector::append(&mut payload, collateral_amount.to_string());
         vector::append(&mut payload, b",");
         vector::append(&mut payload, collateral_coin_type);
-        vector::append(&mut payload, b",");
-        vector::append(&mut payload, collateral_decimal.to_string());
-		vector::append(&mut payload, b",");
-		vector::append(&mut payload, collateral_coin_symbol);
 		vector::append(&mut payload, b",");
 		vector::append(&mut payload, lend_chain_borrower);
 
@@ -350,23 +365,23 @@ module enso_lending::loan_crosschain {
         target_address: vector<u8>,
         offer_id: vector<u8>,
         collateral_amount: u64,
-        pyth_collateral_symbol: vector<u8>,
-        collateral_decimal: u64,
+        collateral_coin_type: vector<u8>,
+        lend_chain_borrower: vector<u8>,
     ): vector<u8> {
         let mut payload: vector<u8> = vector[];
         vector::append(&mut payload, target_chain.to_string());
         vector::append(&mut payload, b",");
         vector::append(&mut payload, target_address);
         vector::append(&mut payload, b",");
-        vector::append(&mut payload, b"sync_deposit_collateral_crosschain");
+        vector::append(&mut payload, b"update_deposit_collateral_cross_chain");
         vector::append(&mut payload, b",");
         vector::append(&mut payload, offer_id);
         vector::append(&mut payload, b",");
         vector::append(&mut payload, collateral_amount.to_string());
         vector::append(&mut payload, b",");
-        vector::append(&mut payload, pyth_collateral_symbol);
+        vector::append(&mut payload, collateral_coin_type);
         vector::append(&mut payload, b",");
-        vector::append(&mut payload, collateral_decimal.to_string());
+        vector::append(&mut payload, lend_chain_borrower);
 
         payload
     }
@@ -377,15 +392,15 @@ module enso_lending::loan_crosschain {
         offer_id: vector<u8>,
         withdraw_amount: u64,
 		remaining_collateral_amount: u64,
-        pyth_collateral_symbol: vector<u8>,
-        collateral_decimal: u64,
+        collateral_coin_type: vector<u8>,
+        lend_chain_borrower: vector<u8>,
     ): vector<u8> {
         let mut payload: vector<u8> = vector[];
         vector::append(&mut payload, target_chain.to_string());
         vector::append(&mut payload, b",");
         vector::append(&mut payload, target_address);
         vector::append(&mut payload, b",");
-        vector::append(&mut payload, b"sync_withdraw_collateral_crosschain");
+        vector::append(&mut payload, b"update_withdraw_collateral_cross_chain");
         vector::append(&mut payload, b",");
         vector::append(&mut payload, offer_id);
         vector::append(&mut payload, b",");
@@ -393,9 +408,9 @@ module enso_lending::loan_crosschain {
 		vector::append(&mut payload, b",");
 		vector::append(&mut payload, remaining_collateral_amount.to_string());
         vector::append(&mut payload, b",");
-        vector::append(&mut payload, pyth_collateral_symbol);
+        vector::append(&mut payload, collateral_coin_type);
         vector::append(&mut payload, b",");
-        vector::append(&mut payload, collateral_decimal.to_string());
+        vector::append(&mut payload, lend_chain_borrower);
 
         payload
     }

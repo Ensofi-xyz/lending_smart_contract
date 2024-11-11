@@ -71,14 +71,26 @@ pub use create_loan_offer_cross_chain::*;
 pub mod repay_loan_offer_cross_chain;
 pub use repay_loan_offer_cross_chain::*;
 
-pub mod init_foreign_emitter;
-pub use init_foreign_emitter::*;
+pub mod init_foreign_chain;
+pub use init_foreign_chain::*;
 
-pub mod init_wormhole_emitter;
-pub use init_wormhole_emitter::*;
+pub mod request_cancel_collateral_cross_chain;
+pub use request_cancel_collateral_cross_chain::*;
 
-pub mod cancel_loan_offer_cross_chain;
-pub use cancel_loan_offer_cross_chain::*;
+pub mod request_cancel_loaned_cross_chain;
+pub use request_cancel_loaned_cross_chain::*;
 
-pub mod cancel_loaned_offer_cross_chain;
-pub use cancel_loaned_offer_cross_chain::*;
+pub use init_wormhole::*;
+pub mod init_wormhole;
+
+pub mod update_deposit_collateral_cross_chain;
+pub use update_deposit_collateral_cross_chain::*;
+
+pub mod update_withdraw_collateral_cross_chain;
+pub use update_withdraw_collateral_cross_chain::*;
+
+pub mod start_liquidate_health_loan_cross_chain;
+pub use start_liquidate_health_loan_cross_chain::*;
+
+pub mod start_liquidate_expired_loan_cross_chain;
+pub use start_liquidate_expired_loan_cross_chain::*;

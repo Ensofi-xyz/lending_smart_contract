@@ -2,22 +2,19 @@ use std::str::FromStr;
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{transfer_checked, Mint, Token, TokenAccount, TransferChecked};
-use wormhole_anchor_sdk::wormhole::{self, program::Wormhole, SEED_PREFIX_EMITTER, Finality};
+use wormhole_anchor_sdk::wormhole::{self, program::Wormhole};
 
 use crate::{
 	amount::TotalRepayLoanAmountParams, common::{
     ENSO_SEED,
-    LOAN_OFFER_ACCOUNT_SEED, 
-		WORMHOLE_MESSAGE_SEED,
-  }, foreign_chain, utils, Asset, LoanOfferAccount, LoanOfferError, LoanOfferStatus, RepayOfferError, SystemRepayLoanOfferEvent, WormholeEmitter, HOT_WALLET_PUBKEY, REFUND_COLLATERAL_CROSS_CHAIN_FUNCTION, SOL_CHAIN_ID
+    LOAN_OFFER_ACCOUNT_SEED,
+		WORMHOLE_SENT_SEED,
+  }, utils, Asset, ForeignChain, LoanOfferAccount, LoanOfferError, LoanOfferStatus, RepayOfferError, SystemRepayLoanOfferEvent, WormholeConfig, WormholeEmitter, WormholeError, HOT_WALLET_PUBKEY, REFUND_COLLATERAL_CROSS_CHAIN_FUNCTION
 };
 
 #[derive(Accounts)]
 #[instruction(
 	loan_offer_id: String,
-	target_chain: u16,
-	target_address: String,
-	target_function: String,
 )]
 pub struct RepayLoanOfferCrossChain<'info> {
 	#[account(mut)]
@@ -63,33 +60,46 @@ pub struct RepayLoanOfferCrossChain<'info> {
     associated_token::authority = Pubkey::from_str(HOT_WALLET_PUBKEY).unwrap()
   )]
   pub hot_wallet_ata_lend_asset: Account<'info, TokenAccount>,
-  #[account(mut)]
-  pub wormhole_bridge: Account<'info, wormhole::BridgeData>,
-  #[account(mut)]
-  pub wormhole_fee_collector: Account<'info, wormhole::FeeCollector>,
-  #[account(mut)]
-  pub wormhole_sequence: Account<'info, wormhole::SequenceTracker>,
 	#[account(
-		seeds = [
-			ENSO_SEED.as_ref(), 
-      SEED_PREFIX_EMITTER.as_ref(),
-      &SOL_CHAIN_ID.to_be_bytes(),
-      crate::ID.key().as_ref(), 
-		],
-		bump,
-)]
-pub wormhole_emitter: Account<'info, WormholeEmitter>,
+    seeds = [WormholeConfig::SEED_PREFIX],
+    bump,
+  )]
+  pub config: Account<'info, WormholeConfig>,
+	#[account(
+    mut,
+    address = config.wormhole.bridge @ WormholeError::InvalidWormholeConfig
+  )]
+  pub wormhole_bridge: Account<'info, wormhole::BridgeData>,
   #[account(
-	mut,
-	seeds = [
-		ENSO_SEED.as_ref(),
-		WORMHOLE_MESSAGE_SEED.as_ref(),
-		&wormhole_sequence.next_value().to_le_bytes()[..]
-	],
-	bump,
-	)]
-	/// CHECK: initialized and written to by wormhole core bridge
-	pub wormhole_message: UncheckedAccount<'info>,
+    mut,
+    address = config.wormhole.fee_collector @ WormholeError::InvalidWormholeFeeCollector
+  )]
+  pub wormhole_fee_collector: Account<'info, wormhole::FeeCollector>,
+  #[account(
+    seeds = [WormholeEmitter::SEED_PREFIX],
+    bump,
+  )]
+  pub wormhole_emitter: Account<'info, WormholeEmitter>,
+  #[account(
+      mut,
+      address = config.wormhole.sequence @ WormholeError::InvalidSequence
+  )]
+  pub wormhole_sequence: Account<'info, wormhole::SequenceTracker>,
+  #[account(
+    mut,
+    seeds = [
+        WORMHOLE_SENT_SEED,
+        &wormhole_sequence.next_value().to_le_bytes()[..]
+    ],
+    bump,
+  )]
+  /// CHECK: Wormhole Message.
+  pub wormhole_message: UncheckedAccount<'info>,
+  #[account(
+    mut,
+    constraint = collateral_asset.chain_id == foreign_chain.chain_id @ LoanOfferError::InvalidChainId
+  )]
+  pub foreign_chain: Account<'info, ForeignChain>,
 	pub wormhole_program: Program<'info, Wormhole>,
 	pub token_program: Program<'info, Token>,
 	pub system_program: Program<'info, System>,
@@ -104,7 +114,6 @@ impl<'info> RepayLoanOfferCrossChain<'info> {
 		_loan_offer_id: String,
 	) -> Result<()> {
 		let target_chain = self.collateral_asset.chain_id;
-		let target_address = foreign_chain::get_chain_address_by_chain_id(target_chain).unwrap();
 		
 		let send_message_fee = self.wormhole_bridge.fee();
 		if send_message_fee > 0 {
@@ -126,7 +135,7 @@ impl<'info> RepayLoanOfferCrossChain<'info> {
 
 		let payload = self.gen_repay_loan_payload(
 			target_chain,
-			target_address,
+			self.foreign_chain.chain_address.clone(),
 			REFUND_COLLATERAL_CROSS_CHAIN_FUNCTION.to_owned(),
 			self.loan_offer.lend_offer_id.clone(),
 			self.borrower.key().to_string(),
@@ -147,24 +156,17 @@ impl<'info> RepayLoanOfferCrossChain<'info> {
 							system_program: self.system_program.to_account_info(),
 					},
 					&[
-							&[
-									ENSO_SEED.as_ref(),
-									WORMHOLE_MESSAGE_SEED.as_ref(),
-									&self.wormhole_sequence.next_value().to_le_bytes()[..],
-									&[bumps.wormhole_message],
-							],
-							&[
-									ENSO_SEED.as_ref(), 
-									SEED_PREFIX_EMITTER.as_ref(),
-									&SOL_CHAIN_ID.to_be_bytes(),
-									crate::ID.key().as_ref(), 
-									&[self.wormhole_emitter.bump]
-							],
+						&[
+							WORMHOLE_SENT_SEED.as_ref(),
+							&self.wormhole_sequence.next_value().to_le_bytes()[..],
+							&[bumps.wormhole_message],
+						],
+						&[wormhole::SEED_PREFIX_EMITTER, &[bumps.wormhole_emitter]],
 					],
 			),
-			0, //batch_id nonce
+			self.config.batch_id,
 			payload,
-			Finality::Finalized,
+			self.config.finality.try_into().unwrap(),
 		)?;
 
 		let _ = self.emit_event_repay_loan_offer();
@@ -207,12 +209,12 @@ impl<'info> RepayLoanOfferCrossChain<'info> {
 	fn gen_repay_loan_payload(
 		&self,
 		target_chain: u16,
-		target_address: String,
+		chain_address: String,
 		target_function: String,
 		lend_offer_id: String,
 		borrower_address: String,
 	) -> Result<Vec<u8>> {
-		let payload = format!("{},{},{},{},{}", target_chain, target_address, target_function, lend_offer_id, borrower_address);
+		let payload = format!("{},{},{},{},{}", target_chain, chain_address, target_function, lend_offer_id, borrower_address);
 		Ok(payload.into_bytes())
 	}
 

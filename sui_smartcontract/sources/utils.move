@@ -6,16 +6,11 @@ module enso_lending::utils {
     };
 
     use fun std::string::utf8 as vector.to_string;
-    use fun std::string::from_ascii as AsciiString.to_string;
-
-    const ENotSupportThisChain: u64 = 1;
+    use fun std::string::from_ascii as AsciiString.to_string; 
 
     const HEXTABLE : vector<vector<u8>> = vector[b"0", b"1", b"2", b"3", b"4", b"5", b"6", b"7", b"8", b"9", b"a", b"b", b"c", b"d", b"e", b"f"];
     const DEFAULT_RATE_FACTOR: u64 = 10000;
     const SECOND_IN_YEAR: u64 = 31536000;
-
-    const SOL_EMITTER_CHAIN: u16 = 1;
-    const SOL_EMITTER_ADDRESS: vector<u8> = b"mock";
 
     public fun power(base: u64, exponent: u64): u64 {
         let mut result = 1;
@@ -111,9 +106,10 @@ module enso_lending::utils {
             if (byte == 44) {
                 vector::push_back<String>(&mut result, ascii_string.to_string());
                 ascii_string = ascii::string(b"");
+            } else {
+                let char = ascii::char(byte);
+                ascii_string.push_char(char);
             };
-            let char = ascii::char(byte);
-            ascii_string.push_char(char);
             i = i + 1;
         };
         
@@ -133,14 +129,6 @@ module enso_lending::utils {
         };
 
         payload
-    }
-
-    public fun get_emitter_address_by_chain(chain: u16): vector<u8> {
-        if (chain == SOL_EMITTER_CHAIN) {
-            SOL_EMITTER_ADDRESS
-        } else {
-            abort ENotSupportThisChain
-        }
     }
 
     public fun get_type<T>(): String {

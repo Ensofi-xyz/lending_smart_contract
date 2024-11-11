@@ -340,12 +340,13 @@ pub mod enso_lending {
         Ok(())
     }
 
-    pub fn init_foreign_emitter_account(
+    pub fn init_foreign_chain_account(
         ctx: Context<InitForeignEmitter>,
-        chain: u16,
-        address: String
+        chain_id: u16,
+        chain_address: String,
+        emitter_address: String
     ) -> Result<()> {
-        ctx.accounts.init_foreign_emitter_account(&ctx.bumps, chain, address)?;
+        ctx.accounts.init_foreign_chain_account(&ctx.bumps, chain_id, chain_address, emitter_address)?;
 
         Ok(())
     }
@@ -368,41 +369,33 @@ pub mod enso_lending {
         Ok(())
     }
 
-    pub fn init_wormhole_emitter_account(
-        ctx: Context<InitWormholeEmitter>,
-        chain: u16,
-        address: String
-    ) -> Result<()> {
-        ctx.accounts.init_wormhole_emitter_account(&ctx.bumps, chain, address)?;
-
-        Ok(())
-    }
-
-    pub fn cancel_loan_offer_cross_chain(
-      ctx: Context<CancelLoanOfferCrossChain>,
+    pub fn request_cancel_collateral_cross_chain(
+      ctx: Context<RequestCancelCollateralCrossChain>,
       tier_id: String,
-      loan_offer_id: String,
+      lend_offer_id: String,
       vaa_hash: [u8; 32],
     ) -> Result<()> {
-      ctx.accounts.cancel_loan_offer_cross_chain(
+      ctx.accounts.request_cancel_collateral_cross_chain(
         &ctx.bumps,
         tier_id,
-        loan_offer_id,
+        lend_offer_id,
         vaa_hash
       )?;
 
       Ok(())
     }
 
-    pub fn cancel_loaned_offer_cross_chain(
-      ctx: Context<CancelLoanedOfferCrossChain>,
+    pub fn request_cancel_loaned_cross_chain(
+      ctx: Context<RequestCancelLoanedCrossChain>,
       tier_id: String,
+      lend_offer_id: String,
       loan_offer_id: String,
       vaa_hash: [u8; 32],
     ) -> Result<()> {
-      ctx.accounts.cancel_loaned_offer_cross_chain(
+      ctx.accounts.request_cancel_loaned_cross_chain(
         &ctx.bumps,
         tier_id,
+        lend_offer_id,
         loan_offer_id,
         vaa_hash
       )?;
@@ -418,6 +411,56 @@ pub mod enso_lending {
             &ctx.bumps,
             loan_offer_id,
         )?;
+
+        Ok(())
+    }
+
+    pub fn init_wormhole(ctx: Context<InitWormhole>) -> Result<()> {
+      ctx.accounts.init_wormhole(&ctx.bumps)?;
+
+      Ok(())
+    }
+
+    pub fn update_deposit_collateral_cross_chain(
+      ctx: Context<UpdateDepositCollateralCrossChain>,
+      loan_offer_id: String,
+      vaa_hash: [u8; 32],
+    ) -> Result<()> {
+      ctx.accounts.update_deposit_collateral_cross_chain(
+        loan_offer_id,
+        vaa_hash
+      )?;
+
+      Ok(())
+    }
+
+    pub fn update_withdraw_collateral_cross_chain(
+      ctx: Context<UpdateWithdrawCollateralCrossChain>,
+      loan_offer_id: String,
+      vaa_hash: [u8; 32],
+    ) -> Result<()> {
+      ctx.accounts.update_withdraw_collateral_cross_chain(
+        loan_offer_id,
+        vaa_hash
+      )?;
+
+      Ok(())
+    }
+
+    pub fn start_liquidate_health_loan_cross_chain(
+        ctx: Context<StartLiquidateLoanHealthCrossChain>,
+        _loan_offer_id: String,
+    ) -> Result<()> {
+        ctx.accounts.start_liquidate_health_loan_cross_chain(&ctx.bumps)?;
+
+        Ok(())
+    }
+
+    pub fn start_liquidate_expired_loan_cross_chain(
+        ctx: Context<StartLiquidateExpiredLoanCrossChain>,
+        _loan_offer_id: String,
+    ) -> Result<()> {
+        ctx.accounts.start_liquidate_expired_loan_cross_chain(&ctx.bumps)?;
 
         Ok(())
     }

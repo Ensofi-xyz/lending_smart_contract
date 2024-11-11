@@ -16,8 +16,11 @@ pub use vault_authority::*;
 pub mod wormhole_message;
 pub use wormhole_message::*;
 
-pub mod foreign_emitter;
-pub use foreign_emitter::*;
+pub mod foreign_chain;
+pub use foreign_chain::*;
 
 pub mod wormhole_emitter;
 pub use wormhole_emitter::*;
+
+pub mod wormhole_config;
+pub use wormhole_config::*;

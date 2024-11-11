@@ -9,5 +9,3 @@ pub mod health_ratio;
 pub mod amount;
 
 pub mod vaa;
-
-pub mod foreign_chain;
